@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Binance.Net;
+using Binance.Net.Clients;
 using Binance.Net.Objects;
 using CryptoExchange.Net.Authentication;
 using moderndrummer.binance.Model;
@@ -48,14 +49,14 @@ namespace moderndrummer.binance
                 ApiCredentials = new ApiCredentials(apiKey, apiSecret)
             });
 
-            var result = await client.General.GetUserCoinsAsync();
+            var result = await client.SpotApi.Account.GetUserAssetsAsync();
 
             var balances = result.Data
-                .Where(i => i.Free > 0 || i.Freeze > 0 || i.Locked > 0)
+                .Where(i => i.Available > 0 || i.Freeze > 0 || i.Locked > 0)
                 .Select(i => new Earning
                 {
-                    Asset = i.Coin,
-                    Amount = i.Free + i.Locked
+                    Asset = i.Asset,
+                    Amount = i.Available + i.Locked
                 });
 
             return balances;
