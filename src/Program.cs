@@ -17,29 +17,10 @@ namespace moderndrummer.binance
         {
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection);
-            IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
+            serviceCollection.BuildServiceProvider();
 
             var binanceConnector = new BinanceConnector(Configuration["apiKey"], Configuration["apiSecret"]);
-            var taskList = new List<Task<IEnumerable<Earning>>>()
-            {
-                binanceConnector.GetSpotBalances(),
-                binanceConnector.GetCardBalances(),
-                binanceConnector.GetEarningsAsync(),
-                binanceConnector.GetVaultAsync()
-            };
-
-            var results = await Task.WhenAll(taskList);
-            var items = results.SelectMany(i => i).ToList();
-
-            // consolidate
-            var totals = items.GroupBy(i => i.Asset)
-                .Select(g => new Earning
-                {
-                    Asset = g.Key,
-                    Amount = g.Sum(x => x.Amount)
-                })
-                .OrderBy(i => i.Asset);
-
+            var totals = await binanceConnector.GetTotalBalances();
             foreach (var item in totals)
             {
                 Console.WriteLine($"{item.Asset.ToMinStringLength(6)}: {Math.Round(item.Amount, 5).ToString().ToMinStringLength(12)}");

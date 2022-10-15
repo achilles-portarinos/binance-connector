@@ -24,23 +24,29 @@ namespace moderndrummer.binance
             });
         }
 
-        public async Task<IEnumerable<Earning>> ParseEarnings()
+        public async Task<IEnumerable<Earning>> GetTotalBalances()
         {
-            var json = await File.ReadAllTextAsync("earn.json");
+            var taskList = new List<Task<IEnumerable<Earning>>>()
+            {
+                GetSpotBalances(),
+                GetCardBalances(),
+                GetEarningsAsync(),
+                GetVaultAsync()
+            };
 
-            var earnData = JsonConvert.DeserializeObject<EarningsWrapper>(json);
+            var results = await Task.WhenAll(taskList);
+            var items = results.SelectMany(i => i).ToList();
 
-            var earnings = earnData.Data;
-
-            var calculated = earnings.GroupBy(x => x.Asset)
+            // consolidate
+            var totals = items.GroupBy(i => i.Asset)
                 .Select(g => new Earning
                 {
                     Asset = g.Key,
-                    Amount = g.Sum(x => x.Amount),
-                    EarliestCreatedAt = g.Min(x => x.CreateTimestamp.ToDateTime()),
-                });
+                    Amount = g.Sum(x => x.Amount)
+                })
+                .OrderBy(i => i.Asset);
 
-            return calculated;
+            return totals;
         }
 
         public async Task<IEnumerable<Earning>> GetSpotBalances()
@@ -83,7 +89,7 @@ namespace moderndrummer.binance
             };
 
             var results = await Task.WhenAll(taskList);
-            var items = results.SelectMany(i =>i.Data).ToList();
+            var items = results.SelectMany(i => i.Data).ToList();
 
             var balances = items
                 .Where(i => i.Quantity > 0)
