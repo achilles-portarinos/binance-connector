@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,18 +13,26 @@ namespace moderndrummer.binance
     {
         private static IConfigurationRoot Configuration { get; set; }
 
-        public static async Task Main(string[] args)
+        public static async Task Main()
         {
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection);
             IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
             var binanceConnector = new BinanceConnector(Configuration["apiKey"], Configuration["apiSecret"]);
-            var earnings = await binanceConnector.ParseEarnings();
-            var balances = await binanceConnector.GetSpotBalances();
+            var taskList = new List<Task<IEnumerable<Earning>>>()
+            {
+                binanceConnector.GetSpotBalances(),
+                binanceConnector.GetCardBalances(),
+                binanceConnector.GetEarningsAsync(),
+                binanceConnector.GetVaultAsync()
+            };
+
+            var results = await Task.WhenAll(taskList);
+            var items = results.SelectMany(i => i).ToList();
 
             // consolidate
-            var totals = earnings.Union(balances).GroupBy(i => i.Asset)
+            var totals = items.GroupBy(i => i.Asset)
                 .Select(g => new Earning
                 {
                     Asset = g.Key,
