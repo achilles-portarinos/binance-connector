@@ -1,23 +1,20 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Binance.Net;
 using Binance.Net.Clients;
 using Binance.Net.Objects;
 using CryptoExchange.Net.Authentication;
 using moderndrummer.binance.Model;
-using Newtonsoft.Json;
 
 namespace moderndrummer.binance
 {
     public class BinanceConnector
     {
-        private readonly BinanceClient client;
+        private readonly BinanceClient _client;
 
         public BinanceConnector(string apiKey, string apiSecret)
         {
-            this.client = new BinanceClient(new BinanceClientOptions()
+            _client = new BinanceClient(new BinanceClientOptions()
             {
                 // Specify options for the client
                 ApiCredentials = new ApiCredentials(apiKey, apiSecret)
@@ -51,7 +48,7 @@ namespace moderndrummer.binance
 
         public async Task<IEnumerable<Earning>> GetSpotBalances()
         {
-            var result = await client.SpotApi.Account.GetUserAssetsAsync();
+            var result = await _client.SpotApi.Account.GetUserAssetsAsync();
 
             var balances = result.Data
                 .Where(i => i.Available > 0 || i.Freeze > 0 || i.Locked > 0)
@@ -66,7 +63,7 @@ namespace moderndrummer.binance
 
         public async Task<IEnumerable<Earning>> GetCardBalances()
         {
-            var result = await client.SpotApi.Account.GetFundingWalletAsync();
+            var result = await _client.SpotApi.Account.GetFundingWalletAsync();
 
             var balances = result.Data
                 .Where(i => i.Available > 0 || i.Freeze > 0 || i.Locked > 0)
@@ -83,9 +80,9 @@ namespace moderndrummer.binance
         {
             var taskList = new List<Task<CryptoExchange.Net.Objects.WebCallResult<IEnumerable<Binance.Net.Objects.Models.Spot.Staking.BinanceStakingPosition>>>>()
             {
-                client.SpotApi.Trading.GetStakingPositionsAsync(Binance.Net.Enums.StakingProductType.LockedDeFi),
-                client.SpotApi.Trading.GetStakingPositionsAsync(Binance.Net.Enums.StakingProductType.FlexibleDeFi),
-                client.SpotApi.Trading.GetStakingPositionsAsync(Binance.Net.Enums.StakingProductType.Staking)
+                _client.SpotApi.Trading.GetStakingPositionsAsync(Binance.Net.Enums.StakingProductType.LockedDeFi),
+                _client.SpotApi.Trading.GetStakingPositionsAsync(Binance.Net.Enums.StakingProductType.FlexibleDeFi),
+                _client.SpotApi.Trading.GetStakingPositionsAsync(Binance.Net.Enums.StakingProductType.Staking)
             };
 
             var results = await Task.WhenAll(taskList);
@@ -104,7 +101,7 @@ namespace moderndrummer.binance
 
         public async Task<IEnumerable<Earning>> GetVaultAsync()
         {
-            var items = await client.GeneralApi.Savings.GetFlexibleProductPositionAsync();
+            var items = await _client.GeneralApi.Savings.GetFlexibleProductPositionAsync();
 
             var balances = items.Data
                 .Where(i => i.TotalQuantity > 0)
