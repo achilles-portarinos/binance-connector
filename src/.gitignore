@@ -29,7 +29,7 @@ yarn-error.log*
 # visual studio
 .vs
 # visual studio code
-.vscode
+#.vscode
 
 # jetbrains
 .idea/
